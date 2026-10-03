@@ -1,0 +1,72 @@
+# ==============================================================================
+# PIPELINE CI/CD - GOOGLE CLOUD BUILD
+# Sistema SCADA de Monitoreo de Robots Soldadores - Industria 4.0
+# Despliegue automatizado hacia Artifact Registry y Google Cloud Run
+# ==============================================================================
+
+steps:
+  # Paso 1: Construcción de la imagen Docker optimizada para producción
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-docker-image'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/scada-robots-monitor:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/scada-robots-monitor:latest'
+      - '.'
+
+  # Paso 2: Publicación de la imagen en Google Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-to-artifact-registry'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/scada-robots-monitor'
+
+  # Paso 3: Despliegue continuo en Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-to-cloud-run'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/scada-robots-monitor:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--concurrency'
+      - '80'
+      - '--timeout'
+      - '300s'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,PORT=8080,GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION}'
+
+# Variables de sustitución configurables
+substitutions:
+  _REGION: 'us-central1'
+  _REPO_NAME: 'api-repo'
+  _SERVICE_NAME: 'scada-robots-monitor'
+
+# Registro de artefactos generados para trazabilidad
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/scada-robots-monitor:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/scada-robots-monitor:latest'
+
+# Configuración de logs en Cloud Logging
+options:
+  logging: CLOUD_LOGGING_ONLY
