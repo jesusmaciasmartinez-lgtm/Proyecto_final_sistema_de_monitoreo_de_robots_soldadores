@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de Monitoreo Industrial en Tiempo Real para Robots Soldadores - Industria 4.0">
+  <title>Sistema de Monitoreo de Robots Soldadores | Industria 4.0</title>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono for industrial telemetry -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="industrial-theme">
+  <!-- Layout Wrapper -->
+  <div class="app-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <div class="logo-icon-pulse">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div class="brand-info">
+            <span class="brand-title">WELD<span class="text-cyan">PULSE</span></span>
+            <span class="brand-tag">SMART FACTORY 4.0</span>
+          </div>
+        </div>
+        <button class="btn-toggle-sidebar" id="sidebarToggleBtn" title="Colapsar Menú">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+
+      <div class="plant-status-widget">
+        <div class="pulse-indicator">
+          <span class="ping-circle"></span>
+          <span class="core-circle"></span>
+        </div>
+        <div class="plant-text">
+          <span class="plant-name">Planta Celaya - Celda B</span>
+          <span class="plant-telemetry" id="liveClock">00:00:00</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul>
+          <li class="nav-item active" data-view="dashboard">
+            <a href="#dashboard" class="nav-link">
+              <i class="fa-solid fa-chart-line"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="robots">
+            <a href="#robots" class="nav-link">
+              <i class="fa-solid fa-microchip"></i>
+              <span>Robots</span>
+              <span class="nav-badge" id="robotsCountBadge">10</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="alarmas">
+            <a href="#alarmas" class="nav-link">
+              <i class="fa-solid fa-bell"></i>
+              <span>Alertas</span>
+              <span class="nav-badge badge-danger" id="alarmsCountBadge">0</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="reportes">
+            <a href="#reportes" class="nav-link">
+              <i class="fa-solid fa-file-waveform"></i>
+              <span>Reportes</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="configuracion">
+            <a href="#configuracion" class="nav-link">
+              <i class="fa-solid fa-sliders"></i>
+              <span>Configuración</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="telemetry-live-card">
+          <div class="telemetry-label">
+            <i class="fa-solid fa-satellite-dish fa-spin"></i> TELEMETRÍA MQTT
+          </div>
+          <div class="telemetry-meta">
+            <span class="status-online">EN LÍNEA</span>
+            <span class="latency" id="simLatency">14 ms</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Container -->
+    <div class="main-wrapper">
+      
+      <!-- Top Header / Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="view-title-container">
+            <h1 class="view-title" id="currentViewTitle">Dashboard de Supervisión</h1>
+            <span class="view-subtitle">Supervisión en tiempo real de soldadura automatizada y celdas robóticas</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Simulation Controls -->
+          <div class="simulation-controls">
+            <button class="btn btn-secondary btn-sm" id="btnToggleSim" title="Pausar/Reanudar Simulación">
+              <i class="fa-solid fa-pause" id="simIcon"></i>
+              <span id="simText">Simulación Activa</span>
+            </button>
+            <button class="btn btn-warning-outline btn-sm" id="btnInjectFault" title="Simular Sobrecarga en Robot">
+              <i class="fa-solid fa-bolt"></i>
+              <span>Probar Alarma</span>
+            </button>
+          </div>
+
+          <!-- Notification Bell -->
+          <div class="notifications-wrapper" id="notificationsWrapper">
+            <button class="btn-icon" id="notifBtn" title="Notificaciones de Alerta">
+              <i class="fa-regular fa-bell"></i>
+              <span class="notification-indicator" id="notifIndicator" style="display:none;"></span>
+            </button>
+            <!-- Dropdown Alert Preview -->
+            <div class="notifications-dropdown" id="notificationsDropdown">
+              <div class="notif-header">
+                <span>Alertas Recientes</span>
+                <button class="btn-text" id="btnClearNotifs">Limpiar</button>
+              </div>
+              <div class="notif-list" id="notifList">
+                <div class="notif-empty">No hay alertas críticas en este momento.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User / Shift Profile -->
+          <div class="user-pill">
+            <div class="user-avatar">
+              <i class="fa-solid fa-user-gear"></i>
+            </div>
+            <div class="user-details">
+              <span class="user-name">Ing. Supervisor</span>
+              <span class="user-role">Turno 1 • Mantenimiento</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Active Alert Banner (Shows when critical thresholds exceeded) -->
+      <div class="critical-banner" id="criticalBanner" style="display: none;">
+        <div class="banner-content">
+          <i class="fa-solid fa-circle-exclamation banner-icon"></i>
+          <div class="banner-text">
+            <strong>ALERTA CRÍTICA DETECTADA:</strong>
+            <span id="bannerDetails">Uno o más robots superan los límites seguros operativos (>400°C o >140A).</span>
+          </div>
+        </div>
+        <div class="banner-actions">
+          <button class="btn btn-sm btn-light" id="btnGoToAlarms">Ver en Alarmas</button>
+          <button class="btn-banner-close" id="btnCloseBanner"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <!-- Main Content Views Area -->
+      <main class="content-body">
+
+        <!-- ================= VIEW 1: DASHBOARD ================= -->
+        <section class="view-section active" id="view-dashboard">
+          
+          <!-- KPIs Section (Calculados Automáticamente de la Tabla Robots Soldadores) -->
+          <div class="kpi-grid">
+            <!-- KPI 1: Total de Robots -->
+            <div class="kpi-card card-blue" id="cardKpiTotal" title="Calculado automáticamente del total de registros en la tabla">
+              <div class="kpi-header">
+                <span class="kpi-title">Total de Robots</span>
+                <div class="kpi-icon-wrap icon-blue">
+                  <i class="fa-solid fa-robot"></i>
+                </div>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpiTotalRobots">10</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext"><i class="fa-solid fa-table text-cyan"></i> Tabla Robots Soldadores</span>
+                  <span class="badge-tag" id="kpiTotalBadge">10 Unidades</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI 2: Robots Activos -->
+            <div class="kpi-card card-green" id="cardKpiActive" title="Calculado automáticamente de filas con Estado = 'Activo'">
+              <div class="kpi-header">
+                <span class="kpi-title">Robots Activos</span>
+                <div class="kpi-icon-wrap icon-green">
+                  <i class="fa-solid fa-circle-play"></i>
+                </div>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value text-green" id="kpiActiveRobots">7</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext"><i class="fa-solid fa-bolt text-green"></i> Estado = 'Activo'</span>
+                  <span class="badge-tag tag-success" id="kpiActivePercent">70% Disponibilidad</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI 3: Robots Detenidos -->
+            <div class="kpi-card card-orange" id="cardKpiStopped" title="Calculado automáticamente de filas con Estado = 'Detenido'">
+              <div class="kpi-header">
+                <span class="kpi-title">Robots Detenidos</span>
+                <div class="kpi-icon-wrap icon-orange">
+                  <i class="fa-solid fa-circle-stop"></i>
+                </div>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value text-orange" id="kpiStoppedRobots">2</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext"><i class="fa-solid fa-pause text-orange"></i> Estado = 'Detenido'</span>
+                  <span class="badge-tag tag-warning" id="kpiStoppedBadge">2 en Reposo</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI 4: Alarmas Activas (Conectado a la tabla Robots Soldadores) -->
+            <div class="kpi-card card-red" id="kpiAlarmsCard" onclick="window.scrollToAlertsSection()" style="cursor: pointer;" title="Indicador KPI: Alarmas Activas calculado en tiempo real desde la tabla Robots Soldadores. Clic para ver detalles.">
+              <div class="kpi-header">
+                <span class="kpi-title">Alarmas Activas</span>
+                <div class="kpi-icon-wrap icon-red">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value text-red" id="kpiActiveAlarms">0</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext" id="kpiAlarmSubtext"><i class="fa-solid fa-bell text-red"></i> Monitoreo de reglas 4.0</span>
+                  <span class="badge-tag tag-danger" id="kpiAlarmStatusBadge">0 Activas</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= SECCIÓN: ANÁLISIS OPERATIVO ================= -->
+          <div class="analysis-operational-section" id="analisis-operativo">
+            <div class="analysis-section-header">
+              <div class="section-title-left">
+                <div class="section-title-icon">
+                  <i class="fa-solid fa-chart-simple"></i>
+                </div>
+                <div>
+                  <h2 class="section-main-heading">Análisis Operativo</h2>
+                  <span class="section-main-subheading">Supervisión gráfica en tiempo real alimentada por la tabla Robots Soldadores</span>
+                </div>
+              </div>
+              <div class="palette-legend-strip">
+                <span class="palette-tag normal-tag"><span class="color-dot dot-blue"></span> Azul: Operación Normal</span>
+                <span class="palette-tag maint-tag"><span class="color-dot dot-yellow"></span> Amarillo: Mantenimiento</span>
+                <span class="palette-tag alarm-tag"><span class="color-dot dot-red"></span> Rojo: Alarmas</span>
+              </div>
+            </div>
+
+            <!-- Visualizaciones del Análisis Operativo -->
+            <div class="charts-grid">
+              <!-- 1. Gráfica de barras: Temperatura por Robot -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <div>
+                    <h3 class="chart-title"><i class="fa-solid fa-temperature-half text-blue"></i> Temperatura por Robot</h3>
+                    <span class="chart-desc">Monitoreo térmico instantáneo (°C) • Rojo (>400°C) • Amarillo (Mantenimiento) • Azul (Normal)</span>
+                  </div>
+                  <span class="live-pill"><i class="fa-solid fa-circle-dot"></i> Live</span>
+                </div>
+                <div class="chart-body">
+                  <canvas id="chartTempBar"></canvas>
+                </div>
+              </div>
+
+              <!-- 2. Gráfica de barras: Corriente Eléctrica por Robot -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <div>
+                    <h3 class="chart-title"><i class="fa-solid fa-bolt text-blue"></i> Corriente Eléctrica por Robot</h3>
+                    <span class="chart-desc">Carga del arco eléctrico (A) • Rojo (>140A) • Amarillo (Mantenimiento) • Azul (Normal)</span>
+                  </div>
+                  <span class="live-pill"><i class="fa-solid fa-circle-dot"></i> Live</span>
+                </div>
+                <div class="chart-body">
+                  <canvas id="chartCurrentBar"></canvas>
+                </div>
+              </div>
+
+              <!-- 3. Gráfica de pastel: Distribución del Estado de los Robots -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <div>
+                    <h3 class="chart-title"><i class="fa-solid fa-chart-pie text-blue"></i> Distribución del Estado de los Robots</h3>
+                    <span class="chart-desc">Distribución operativa: Activo (Azul), Mantenimiento (Amarillo), Alarmas (Rojo), Detenido</span>
+                  </div>
+                  <span class="metric-pill" id="totalFleetPill">Flota: 10</span>
+                </div>
+                <div class="chart-body chart-body-pie">
+                  <canvas id="chartStatusPie"></canvas>
+                </div>
+              </div>
+
+              <!-- 4. Gráfica de línea: Tendencia de Temperatura en el tiempo -->
+              <div class="chart-card">
+                <div class="chart-header">
+                  <div>
+                    <h3 class="chart-title"><i class="fa-solid fa-chart-line text-blue"></i> Tendencia de Temperatura en el tiempo</h3>
+                    <span class="chart-desc">Evolución térmica multicanal continua • Rojo (>400°C) • Amarillo (Mantenimiento) • Azul (Normal)</span>
+                  </div>
+                  <div class="chart-actions">
+                    <span class="tag-reference"><i class="fa-solid fa-arrow-up"></i> 400°C Alarma</span>
+                  </div>
+                </div>
+                <div class="chart-body">
+                  <canvas id="chartHistoryLine"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table Section: Robots Soldadores -->
+          <div class="table-section-card">
+            <div class="table-card-header">
+              <div class="table-header-left">
+                <h2 class="table-title"><i class="fa-solid fa-table-list text-cyan"></i> Robots Soldadores</h2>
+                <span class="table-subtitle">Colección de 10 robots soldadores industriales con telemetría en tiempo real y detección de fallas</span>
+              </div>
+              <div class="table-header-right">
+                <div class="table-search-box">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="tableSearchInput" placeholder="Buscar robot, área, estado...">
+                </div>
+                <select class="table-filter-select" id="areaFilter">
+                  <option value="all">Todas las Áreas</option>
+                  <option value="Soldadura Línea A">Soldadura Línea A</option>
+                  <option value="Soldadura Línea B">Soldadura Línea B</option>
+                  <option value="Soldadura Línea C">Soldadura Línea C</option>
+                  <option value="Soldadura Línea D">Soldadura Línea D</option>
+                </select>
+                <select class="table-filter-select" id="statusFilter">
+                  <option value="all">Todos los Estados</option>
+                  <option value="Activo">Activos</option>
+                  <option value="Detenido">Detenidos</option>
+                  <option value="Mantenimiento">Mantenimiento</option>
+                </select>
+                <button class="btn btn-primary btn-sm" id="btnOpenAddRobotModal" title="Agregar nuevo robot a la tabla">
+                  <i class="fa-solid fa-plus"></i> Nuevo Robot
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btnExportJSON" title="Descargar colección en formato JSON">
+                  <i class="fa-solid fa-file-code"></i> JSON
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btnRefreshTable" title="Refrescar lectura">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="industrial-table" id="robotsTable">
+                <thead>
+                  <tr>
+                    <th>ID_Robot</th>
+                    <th>Area</th>
+                    <th>Estado</th>
+                    <th>Temperatura (°C)</th>
+                    <th>Corriente (A)</th>
+                    <th>Horas_Operacion</th>
+                    <th>Alarma</th>
+                    <th>Fecha_Actualizacion</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="robotsTableBody">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-card-footer">
+              <div class="table-footer-info">
+                <span>Mostrando <strong id="showingCount">10</strong> de 10 robots industriales</span>
+              </div>
+              <div class="table-legend">
+                <span class="legend-item"><span class="dot dot-active"></span> Activo</span>
+                <span class="legend-item"><span class="dot dot-stopped"></span> Detenido</span>
+                <span class="legend-item"><span class="dot dot-maintenance"></span> Mantenimiento</span>
+                <span class="legend-item"><span class="dot dot-alarm"></span> Alerta (> 400°C o > 140A)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= SECCIÓN: TABLA ALERTAS ACTIVAS (PANTALLA PRINCIPAL) ================= -->
+          <div class="table-section-card alerts-main-card" id="seccion-alertas-activas">
+            <div class="table-card-header">
+              <div class="table-header-left">
+                <h2 class="table-title"><i class="fa-solid fa-bell text-red"></i> Alertas Activas</h2>
+                <span class="table-subtitle">Supervisión en tiempo real alimentada directamente por la tabla <strong>Robots Soldadores</strong></span>
+              </div>
+              <div class="table-header-right">
+                <div class="alerts-severity-pills">
+                  <span class="sev-pill sev-pill-red" id="pillCriticasMain"><i class="fa-solid fa-circle-exclamation"></i> <strong id="countCriticasMain">0</strong> Críticas</span>
+                  <span class="sev-pill sev-pill-yellow" id="pillAdvertenciasMain"><i class="fa-solid fa-triangle-exclamation"></i> <strong id="countAdvertenciasMain">0</strong> Advertencias</span>
+                  <span class="sev-pill sev-pill-blue" id="pillInformativasMain"><i class="fa-solid fa-circle-info"></i> <strong id="countInformativasMain">0</strong> Informativas</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="window.navigateToAlertsModule()" title="Ir al módulo completo de alertas">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Módulo de Alertas
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="industrial-table" id="tablaAlertasActivasMain">
+                <thead>
+                  <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Robot</th>
+                    <th>Tipo de Alerta</th>
+                    <th>Severidad</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="alertasActivasMainTbody">
+                  <!-- Populated via JavaScript dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-card-footer">
+              <div class="table-footer-info">
+                <span>Total de condiciones activas: <strong id="totalAlertsCountMain">0</strong> eventos detectados</span>
+              </div>
+              <div class="palette-legend-strip">
+                <span class="palette-tag alarm-tag"><span class="color-dot dot-red"></span> Rojo = Crítica</span>
+                <span class="palette-tag maint-tag"><span class="color-dot dot-yellow"></span> Amarillo = Advertencia</span>
+                <span class="palette-tag normal-tag"><span class="color-dot dot-blue"></span> Azul = Informativa</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= VIEW 2: ROBOTS DETAIL & CONTROL ================= -->
+        <section class="view-section" id="view-robots">
+          <div class="view-header-strip">
+            <div>
+              <h2 class="section-heading">Gestión y Control de Flota de Robots</h2>
+              <p class="section-description">Supervise parámetros específicos de cada brazo robótico, fuerce encendido/apagado o pruebe tolerancias de soldadura.</p>
+            </div>
+            <div class="strip-actions">
+              <button class="btn btn-primary btn-sm" id="btnStartAll">
+                <i class="fa-solid fa-play"></i> Iniciar Todos
+              </button>
+              <button class="btn btn-outline-danger btn-sm" id="btnStopAll">
+                <i class="fa-solid fa-power-off"></i> Parada de Emergencia
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards Grid for Robots -->
+          <div class="robots-detail-grid" id="robotsDetailGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+        <!-- ================= VIEW 3: MÓDULO DE ALERTAS ================= -->
+        <section class="view-section" id="view-alarmas">
+          <div class="view-header-strip">
+            <div>
+              <h2 class="section-heading"><i class="fa-solid fa-bell text-red"></i> Módulo de Alertas</h2>
+              <p class="section-description">Supervisión automática de condiciones de riesgo, reglas operativas y eventos generados desde la tabla Robots Soldadores.</p>
+            </div>
+            <div class="strip-actions">
+              <button class="btn btn-secondary btn-sm" id="btnRefreshAlerts" title="Sincronizar alertas con tabla de robots">
+                <i class="fa-solid fa-arrows-rotate"></i> Actualizar Alertas
+              </button>
+              <button class="btn btn-warning btn-sm" id="btnTestAlarmTrigger">
+                <i class="fa-solid fa-fire"></i> Disparar Falla de Prueba
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Reglas Operativas del Módulo de Alertas -->
+          <div class="alarm-rules-summary">
+            <!-- Regla 1: Temperatura > 400°C -->
+            <div class="rule-card rule-red">
+              <div class="rule-icon icon-red"><i class="fa-solid fa-temperature-arrow-up text-red"></i></div>
+              <div class="rule-info">
+                <div class="rule-header-row">
+                  <h4>Regla 1: Temperatura > 400°C</h4>
+                  <span class="severity-pill severity-critica"><i class="fa-solid fa-circle-exclamation"></i> Crítica</span>
+                </div>
+                <p>Si la temperatura es mayor a 400°C: Mostrar alerta crítica en color rojo por sobrecalentamiento térmico.</p>
+              </div>
+            </div>
+
+            <!-- Regla 2: Corriente > 140 A -->
+            <div class="rule-card rule-yellow">
+              <div class="rule-icon icon-orange"><i class="fa-solid fa-bolt-lightning text-yellow"></i></div>
+              <div class="rule-info">
+                <div class="rule-header-row">
+                  <h4>Regla 2: Corriente > 140 A</h4>
+                  <span class="severity-pill severity-advertencia"><i class="fa-solid fa-triangle-exclamation"></i> Advertencia</span>
+                </div>
+                <p>Si la corriente es mayor a 140 A: Mostrar alerta preventiva en color amarillo por sobrecarga eléctrica en el arco.</p>
+              </div>
+            </div>
+
+            <!-- Regla 3: Estado "Detenido" -->
+            <div class="rule-card rule-yellow">
+              <div class="rule-icon icon-orange"><i class="fa-solid fa-circle-pause text-yellow"></i></div>
+              <div class="rule-info">
+                <div class="rule-header-row">
+                  <h4>Regla 3: Estado "Detenido"</h4>
+                  <span class="severity-pill severity-advertencia"><i class="fa-solid fa-triangle-exclamation"></i> Advertencia</span>
+                </div>
+                <p>Si el estado es "Detenido": Mostrar alerta de mantenimiento para inspección de celda inactiva.</p>
+              </div>
+            </div>
+
+            <!-- Regla 4: Estado "Mantenimiento" -->
+            <div class="rule-card rule-blue">
+              <div class="rule-icon icon-blue"><i class="fa-solid fa-wrench text-blue"></i></div>
+              <div class="rule-info">
+                <div class="rule-header-row">
+                  <h4>Regla 4: Estado "Mantenimiento"</h4>
+                  <span class="severity-pill severity-informativa"><i class="fa-solid fa-circle-info"></i> Informativa</span>
+                </div>
+                <p>Si el estado es "Mantenimiento": Mostrar recordatorio de inspección y calibración técnica en curso.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabla Alertas Activas en el Módulo -->
+          <div class="table-section-card">
+            <div class="table-card-header">
+              <div class="table-header-left">
+                <h3 class="table-title"><i class="fa-solid fa-bell text-red"></i> Alertas Activas</h3>
+                <span class="table-subtitle">Actualizadas en tiempo real usando la información de la tabla Robots Soldadores</span>
+              </div>
+              <div class="table-header-right">
+                <div class="alarm-filters">
+                  <button class="btn-filter active" data-filter="all" id="btnFilterAll">Todas (<span id="countModuleFilterAll">0</span>)</button>
+                  <button class="btn-filter" data-filter="Crítica" id="btnFilterCritica">Crítica (Rojo: <span id="countModuleFilterCritica">0</span>)</button>
+                  <button class="btn-filter" data-filter="Advertencia" id="btnFilterAdv">Advertencia (Amarillo: <span id="countModuleFilterAdv">0</span>)</button>
+                  <button class="btn-filter" data-filter="Informativa" id="btnFilterInfo">Informativa (Azul: <span id="countModuleFilterInfo">0</span>)</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="industrial-table" id="tablaAlertasActivasModulo">
+                <thead>
+                  <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Robot</th>
+                    <th>Tipo de Alerta</th>
+                    <th>Severidad</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="alertasActivasModuloTbody">
+                  <!-- Populated via JavaScript dynamically -->
+                </tbody>
+              </table>
+            </div>
+            <div class="table-card-footer">
+              <div class="table-footer-info">
+                <span>Total de alertas en monitoreo: <strong id="moduleAlertsTotal">0</strong> eventos</span>
+              </div>
+              <div class="palette-legend-strip">
+                <span class="palette-tag alarm-tag"><span class="color-dot dot-red"></span> Rojo = Crítica</span>
+                <span class="palette-tag maint-tag"><span class="color-dot dot-yellow"></span> Amarillo = Advertencia</span>
+                <span class="palette-tag normal-tag"><span class="color-dot dot-blue"></span> Azul = Informativa</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 4: REPORTES (PANTALLA EJECUTIVA) ================= -->
+        <section class="view-section" id="view-reportes">
+          <!-- Header Ejecutivo -->
+          <div class="view-header-strip">
+            <div>
+              <h2 class="section-heading"><i class="fa-solid fa-file-waveform text-cyan"></i> Reportes</h2>
+              <p class="section-description">Pantalla ejecutiva para análisis integral de operaciones, rendimiento y confiabilidad de robots soldadores.</p>
+            </div>
+            <div class="strip-actions">
+              <span class="report-live-tag"><i class="fa-solid fa-satellite-dish"></i> Datos Sincronizados</span>
+            </div>
+          </div>
+
+          <!-- Barra Ejecutiva de Filtros -->
+          <div class="executive-filter-card">
+            <div class="filter-header">
+              <span class="filter-title"><i class="fa-solid fa-filter text-cyan"></i> Filtros de Operación</span>
+              <span class="filter-help">Seleccione el rango de fechas, celda o robot para acotar los indicadores y gráficas</span>
+            </div>
+            <div class="filter-controls-grid">
+              <!-- Filtro: Fecha inicial -->
+              <div class="filter-field">
+                <label for="rptStartDate"><i class="fa-regular fa-calendar text-cyan"></i> Fecha Inicial</label>
+                <input type="date" id="rptStartDate" value="2026-10-01" class="executive-input">
+              </div>
+
+              <!-- Filtro: Fecha final -->
+              <div class="filter-field">
+                <label for="rptEndDate"><i class="fa-regular fa-calendar-check text-cyan"></i> Fecha Final</label>
+                <input type="date" id="rptEndDate" value="2026-10-03" class="executive-input">
+              </div>
+
+              <!-- Filtro: Robot -->
+              <div class="filter-field">
+                <label for="rptRobotFilter"><i class="fa-solid fa-robot text-cyan"></i> Robot</label>
+                <select id="rptRobotFilter" class="executive-select">
+                  <option value="all">Todos los Robots (Flota Completa)</option>
+                  <option value="RS-01">RS-01</option>
+                  <option value="RS-02">RS-02</option>
+                  <option value="RS-03">RS-03</option>
+                  <option value="RS-04">RS-04</option>
+                  <option value="RS-05">RS-05</option>
+                  <option value="RS-06">RS-06</option>
+                  <option value="RS-07">RS-07</option>
+                  <option value="RS-08">RS-08</option>
+                  <option value="RS-09">RS-09</option>
+                  <option value="RS-10">RS-10</option>
+                </select>
+              </div>
+
+              <!-- Filtro: Área -->
+              <div class="filter-field">
+                <label for="rptAreaFilter"><i class="fa-solid fa-industry text-cyan"></i> Área</label>
+                <select id="rptAreaFilter" class="executive-select">
+                  <option value="all">Todas las Áreas</option>
+                  <option value="Soldadura Línea A">Soldadura Línea A</option>
+                  <option value="Soldadura Línea B">Soldadura Línea B</option>
+                  <option value="Soldadura Línea C">Soldadura Línea C</option>
+                  <option value="Soldadura Línea D">Soldadura Línea D</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="filter-actions-row">
+              <button class="btn btn-primary" id="btnGenerarReporte">
+                <i class="fa-solid fa-chart-line"></i> Generar Reporte
+              </button>
+              <div class="export-buttons-group">
+                <button class="btn btn-danger-outline" id="btnExportarPDF">
+                  <i class="fa-solid fa-file-pdf"></i> Exportar a PDF
+                </button>
+                <button class="btn btn-success-outline" id="btnExportarExcel">
+                  <i class="fa-solid fa-file-excel"></i> Exportar a Excel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= 6 INDICADORES EJECUTIVOS (KPIS) ================= -->
+          <div class="report-kpi-grid">
+            <!-- 1. Temperatura promedio de la planta -->
+            <div class="report-kpi-card card-kpi-temp">
+              <div class="report-kpi-header">
+                <span class="report-kpi-title">Temperatura Promedio</span>
+                <div class="report-kpi-icon icon-cyan">
+                  <i class="fa-solid fa-temperature-half"></i>
+                </div>
+              </div>
+              <div class="report-kpi-body">
+                <div class="report-kpi-val text-cyan" id="rptKpiAvgTemp">356 °C</div>
+                <div class="report-kpi-sub">
+                  <span class="text-cyan"><i class="fa-solid fa-shield-halved"></i> Planta General</span>
+                  <span class="badge-tag">Nominal &lt; 400°C</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Corriente promedio de operación -->
+            <div class="report-kpi-card card-kpi-curr">
+              <div class="report-kpi-header">
+                <span class="report-kpi-title">Corriente Promedio</span>
+                <div class="report-kpi-icon icon-blue">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+              </div>
+              <div class="report-kpi-body">
+                <div class="report-kpi-val text-blue" id="rptKpiAvgCurrent">123.4 A</div>
+                <div class="report-kpi-sub">
+                  <span class="text-blue"><i class="fa-solid fa-wave-square"></i> Carga de Arco</span>
+                  <span class="badge-tag">Rango 110-135A</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Total de horas de operación acumuladas -->
+            <div class="report-kpi-card card-kpi-hours">
+              <div class="report-kpi-header">
+                <span class="report-kpi-title">Horas Acumuladas</span>
+                <div class="report-kpi-icon icon-green">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+              </div>
+              <div class="report-kpi-body">
+                <div class="report-kpi-val text-green" id="rptKpiTotalHours">22,450 hrs</div>
+                <div class="report-kpi-sub">
+                  <span class="text-green"><i class="fa-solid fa-check-double"></i> Servicio Flota</span>
+                  <span class="badge-tag tag-success">10 Robots</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Total de alarmas generadas -->
+            <div class="report-kpi-card card-kpi-alarms">
+              <div class="report-kpi-header">
+                <span class="report-kpi-title">Alarmas Generadas</span>
+                <div class="report-kpi-icon icon-red">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+              </div>
+              <div class="report-kpi-body">
+                <div class="report-kpi-val text-red" id="rptKpiTotalAlarms">5</div>
+                <div class="report-kpi-sub">
+                  <span class="text-red" id="rptKpiAlarmsSub"><i class="fa-solid fa-bell"></i> 1 Crítica • 4 Advertencias</span>
+                  <span class="badge-tag tag-danger">Eventos SCADA</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. Robot con mayor tiempo de operación -->
+            <div class="report-kpi-card card-kpi-max-hours">
+              <div class="report-kpi-header">
+                <span class="report-kpi-title">Mayor Tiempo Operativo</span>
+                <div class="report-kpi-icon icon-yellow">
+                  <i class="fa-solid fa-trophy"></i>
+                </div>
+              </div>
+              <div class="report-kpi-body">
+                <div class="report-kpi-val text-yellow" id="rptKpiMaxHoursRobot">RS-06</div>
+                <div class="report-kpi-sub">
+                  <span class="text-yellow" id="rptKpiMaxHoursVal"><i class="fa-solid fa-clock"></i> 3,200 horas</span>
+                  <span class="badge-tag tag-warning">Líder Flota</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. Robot con mayor número de alertas -->
+            <div class="report-kpi-card card-kpi-max-alarms">
+              <div class="report-kpi-header">
+                <span class="report-kpi-title">Mayor N° de Alertas</span>
+                <div class="report-kpi-icon icon-orange">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+              </div>
+              <div class="report-kpi-body">
+                <div class="report-kpi-val text-orange" id="rptKpiMaxAlarmsRobot">RS-07</div>
+                <div class="report-kpi-sub">
+                  <span class="text-orange" id="rptKpiMaxAlarmsVal"><i class="fa-solid fa-triangle-exclamation"></i> 2 Alertas registradas</span>
+                  <span class="badge-tag tag-danger">Inspección Prioritaria</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= 4 VISUALIZACIONES INDUSTRIALES ================= -->
+          <div class="report-charts-grid">
+            <!-- Visualización 1: Top 5 robots con más horas de operación -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title"><i class="fa-solid fa-ranking-star text-cyan"></i> Top 5 Robots con Más Horas de Operación</h3>
+                  <span class="chart-desc">Ranking de tiempo acumulado de trabajo continuo en manufactura</span>
+                </div>
+                <span class="metric-pill"><i class="fa-solid fa-clock"></i> Horas</span>
+              </div>
+              <div class="chart-body">
+                <canvas id="chartTopHours"></canvas>
+              </div>
+            </div>
+
+            <!-- Visualización 2: Top 5 robots con más alertas -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title"><i class="fa-solid fa-triangle-exclamation text-red"></i> Top 5 Robots con Más Alertas</h3>
+                  <span class="chart-desc">Frecuencia acumulada de eventos térmicos, eléctricos y de mantenimiento</span>
+                </div>
+                <span class="metric-pill"><i class="fa-solid fa-bell"></i> Eventos</span>
+              </div>
+              <div class="chart-body">
+                <canvas id="chartTopAlarms"></canvas>
+              </div>
+            </div>
+
+            <!-- Visualización 3: Temperatura promedio por área -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title"><i class="fa-solid fa-fire-flame-curved text-blue"></i> Temperatura Promedio por Área</h3>
+                  <span class="chart-desc">Comportamiento térmico sectorizado en celdas Línea A, B, C y D</span>
+                </div>
+                <span class="tag-reference"><i class="fa-solid fa-shield"></i> Límite 400°C</span>
+              </div>
+              <div class="chart-body">
+                <canvas id="chartAvgTempArea"></canvas>
+              </div>
+            </div>
+
+            <!-- Visualización 4: Estado operativo por área -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title"><i class="fa-solid fa-layer-group text-cyan"></i> Estado Operativo por Área</h3>
+                  <span class="chart-desc">Distribución apilada de unidades Activas (Azul), Detenidas (Gris) y Mantenimiento (Amarillo)</span>
+                </div>
+                <span class="metric-pill">4 Líneas</span>
+              </div>
+              <div class="chart-body">
+                <canvas id="chartStatusArea"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de Auditoría Ejecutiva -->
+          <div class="table-section-card report-audit-table-card">
+            <div class="table-card-header">
+              <div class="table-header-left">
+                <h3 class="table-title"><i class="fa-solid fa-clipboard-check text-cyan"></i> Resumen Operativo de la Flota para Auditoría</h3>
+                <span class="table-subtitle">Datos consolidados según el filtro aplicado para toma de decisiones ejecutivas</span>
+              </div>
+              <div class="table-header-right">
+                <span class="badge-tag tag-success" id="rptTableCountBadge">10 Robots Analizados</span>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="industrial-table" id="tablaReporteEjecutivo">
+                <thead>
+                  <tr>
+                    <th>Robot</th>
+                    <th>Área</th>
+                    <th>Estado Operativo</th>
+                    <th>Temperatura (°C)</th>
+                    <th>Corriente (A)</th>
+                    <th>Horas Operativas</th>
+                    <th>Alertas Asociadas</th>
+                    <th>Disponibilidad Estimada</th>
+                  </tr>
+                </thead>
+                <tbody id="reportTableBody">
+                  <!-- Populated dynamically via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 5: CONFIGURACIÓN ================= -->
+        <section class="view-section" id="view-configuracion">
+          <div class="view-header-strip">
+            <div>
+              <h2 class="section-heading">Configuración de Parámetros y Umbrales</h2>
+              <p class="section-description">Ajuste los límites operacionales para el sistema SCADA y configure las notificaciones.</p>
+            </div>
+            <div class="strip-actions">
+              <button class="btn btn-secondary btn-sm" id="btnResetConfig">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Valores por Defecto
+              </button>
+              <button class="btn btn-primary btn-sm" id="btnSaveConfig">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar Ajustes
+              </button>
+            </div>
+          </div>
+
+          <div class="config-grid">
+            <div class="config-card">
+              <h3 class="config-card-title"><i class="fa-solid fa-sliders text-cyan"></i> Umbrales de Seguridad</h3>
+              <div class="config-form-group">
+                <label for="cfgTempThreshold">Temperatura Crítica Máxima (°C)</label>
+                <div class="input-with-unit">
+                  <input type="number" id="cfgTempThreshold" value="400" min="200" max="600">
+                  <span class="unit">°C</span>
+                </div>
+                <small class="helper-text">Dispara alarma visual y sonora cuando cualquier robot supera este valor.</small>
+              </div>
+
+              <div class="config-form-group">
+                <label for="cfgCurrentThreshold">Corriente Máxima de Arco (A)</label>
+                <div class="input-with-unit">
+                  <input type="number" id="cfgCurrentThreshold" value="140" min="50" max="250">
+                  <span class="unit">A</span>
+                </div>
+                <small class="helper-text">Dispara alarma por sobrecarga del devanador o arco inestable.</small>
+              </div>
+            </div>
+
+            <div class="config-card">
+              <h3 class="config-card-title"><i class="fa-solid fa-network-wired text-blue"></i> Parámetros de Telemetría</h3>
+              <div class="config-form-group">
+                <label for="cfgInterval">Frecuencia de Actualización (ms)</label>
+                <select id="cfgInterval">
+                  <option value="1500">1.5 segundos (Rápido)</option>
+                  <option value="2500" selected>2.5 segundos (Recomendado)</option>
+                  <option value="5000">5.0 segundos (Bajo ancho de banda)</option>
+                </select>
+                <small class="helper-text">Intervalo de sondeo del bus industrial Profinet / MQTT.</small>
+              </div>
+
+              <div class="config-form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cfgAudioAlert" checked>
+                  <span>Activar Alerta Sonora (Bip ultrasónico de cabina SCADA)</span>
+                </label>
+              </div>
+
+              <div class="config-form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cfgAutoCool" checked>
+                  <span>Refrigeración Asistida Automática (Enfriar robot tras alarma)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Executive Footer -->
+      <footer class="app-footer">
+        <div class="footer-left">
+          <i class="fa-solid fa-industry text-cyan"></i>
+          <span class="footer-text">Sistema de Monitoreo de Robots Soldadores - Industria 4.0</span>
+        </div>
+        <div class="footer-right">
+          <span class="system-status"><span class="status-dot-pulse"></span> SCADA Host Activo</span>
+          <span class="footer-version">v2.4.0-RT</span>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- Robot Inspection Modal -->
+  <div class="modal-overlay" id="robotModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-robot text-cyan"></i>
+          <div>
+            <h3 id="modalRobotId">Robot RS-01</h3>
+            <span id="modalRobotArea">Soldadura Línea A</span>
+          </div>
+        </div>
+        <button class="btn-modal-close" id="btnCloseModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="modalRobotBody">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Agregar Nuevo Robot a la Tabla Robots Soldadores -->
+  <div class="modal-overlay" id="addRobotModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-plus-circle text-cyan"></i>
+          <div>
+            <h3>Registrar Robot Soldador</h3>
+            <span>Agregar unidad a la tabla "Robots Soldadores" y recalcular indicadores</span>
+          </div>
+        </div>
+        <button class="btn-modal-close" id="btnCloseAddRobotModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="addRobotForm">
+        <div class="modal-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="config-form-group">
+              <label for="newRobotId">ID_Robot (Texto)</label>
+              <input type="text" id="newRobotId" placeholder="Ej: RS-11" required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 9px 14px; color: var(--text-pure); font-family: var(--font-mono);">
+            </div>
+            <div class="config-form-group">
+              <label for="newRobotArea">Area (Texto)</label>
+              <select id="newRobotArea" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 9px 14px; color: var(--text-pure);">
+                <option value="Soldadura Línea A">Soldadura Línea A</option>
+                <option value="Soldadura Línea B">Soldadura Línea B</option>
+                <option value="Soldadura Línea C">Soldadura Línea C</option>
+                <option value="Soldadura Línea D">Soldadura Línea D</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="config-form-group">
+              <label for="newRobotStatus">Estado</label>
+              <select id="newRobotStatus" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 9px 14px; color: var(--text-pure);">
+                <option value="Activo">Activo</option>
+                <option value="Detenido">Detenido</option>
+                <option value="Mantenimiento">Mantenimiento</option>
+              </select>
+            </div>
+            <div class="config-form-group">
+              <label for="newRobotHours">Horas_Operacion</label>
+              <input type="number" id="newRobotHours" value="1200" min="0" required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 9px 14px; color: var(--text-pure); font-family: var(--font-mono);">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="config-form-group">
+              <label for="newRobotTemp">Temperatura (°C)</label>
+              <input type="number" id="newRobotTemp" value="355" min="0" max="600" required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 9px 14px; color: var(--text-pure); font-family: var(--font-mono);">
+            </div>
+            <div class="config-form-group">
+              <label for="newRobotCurrent">Corriente (A)</label>
+              <input type="number" id="newRobotCurrent" value="120" min="0" max="300" required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 9px 14px; color: var(--text-pure); font-family: var(--font-mono);">
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 16px 24px; background: var(--bg-card); display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-subtle);">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnCancelAddRobot">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-check"></i> Agregar y Recalcular KPIs</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Core App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

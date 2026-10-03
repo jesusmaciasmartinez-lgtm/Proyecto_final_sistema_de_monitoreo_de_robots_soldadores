@@ -1,0 +1,26 @@
+{
+  "name": "sistema-monitoreo-robots-soldadores",
+  "version": "1.0.0",
+  "description": "Sistema SCADA e IoT de monitoreo de robots soldadores industriales para manufactura inteligente 4.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test:health": "node -e \"require('http').get('http://localhost:' + (process.env.PORT || 8080) + '/health', res => { if (res.statusCode === 200) { console.log('Health OK'); process.exit(0); } process.exit(1); }).on('error', () => process.exit(1));\""
+  },
+  "keywords": [
+    "scada",
+    "iiot",
+    "smart-manufacturing",
+    "welding-robots",
+    "docker",
+    "google-cloud-run",
+    "pubsub",
+    "bigquery"
+  ],
+  "author": "Arquitectura Cloud e Ingeniería DevOps",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,102 @@
+[
+  {
+    "ID_Robot": "RS-01",
+    "Area": "Soldadura Línea A",
+    "Estado": "Activo",
+    "Temperatura": 350,
+    "Corriente": 120,
+    "Horas_Operacion": 2300,
+    "Alarma": "Ninguna",
+    "Fecha_Actualizacion": "2026-10-03 08:24:15"
+  },
+  {
+    "ID_Robot": "RS-02",
+    "Area": "Soldadura Línea A",
+    "Estado": "Activo",
+    "Temperatura": 365,
+    "Corriente": 125,
+    "Horas_Operacion": 2100,
+    "Alarma": "Ninguna",
+    "Fecha_Actualizacion": "2026-10-03 08:24:45"
+  },
+  {
+    "ID_Robot": "RS-03",
+    "Area": "Soldadura Línea B",
+    "Estado": "Detenido",
+    "Temperatura": 24,
+    "Corriente": 0,
+    "Horas_Operacion": 1800,
+    "Alarma": "Ninguna",
+    "Fecha_Actualizacion": "2026-10-03 08:10:00"
+  },
+  {
+    "ID_Robot": "RS-04",
+    "Area": "Soldadura Línea B",
+    "Estado": "Activo",
+    "Temperatura": 355,
+    "Corriente": 118,
+    "Horas_Operacion": 2500,
+    "Alarma": "Ninguna",
+    "Fecha_Actualizacion": "2026-10-03 08:25:02"
+  },
+  {
+    "ID_Robot": "RS-05",
+    "Area": "Soldadura Línea A",
+    "Estado": "Activo",
+    "Temperatura": 372,
+    "Corriente": 128,
+    "Horas_Operacion": 1950,
+    "Alarma": "Ninguna",
+    "Fecha_Actualizacion": "2026-10-03 08:25:20"
+  },
+  {
+    "ID_Robot": "RS-06",
+    "Area": "Soldadura Línea C",
+    "Estado": "Mantenimiento",
+    "Temperatura": 22,
+    "Corriente": 0,
+    "Horas_Operacion": 3200,
+    "Alarma": "Mantenimiento Preventivo",
+    "Fecha_Actualizacion": "2026-10-03 07:30:00"
+  },
+  {
+    "ID_Robot": "RS-07",
+    "Area": "Soldadura Línea C",
+    "Estado": "Activo",
+    "Temperatura": 412,
+    "Corriente": 134,
+    "Horas_Operacion": 2850,
+    "Alarma": "Sobrecalentamiento (>400°C)",
+    "Fecha_Actualizacion": "2026-10-03 08:25:35"
+  },
+  {
+    "ID_Robot": "RS-08",
+    "Area": "Soldadura Línea D",
+    "Estado": "Activo",
+    "Temperatura": 360,
+    "Corriente": 146,
+    "Horas_Operacion": 1650,
+    "Alarma": "Sobrecarga de Corriente (>140A)",
+    "Fecha_Actualizacion": "2026-10-03 08:25:40"
+  },
+  {
+    "ID_Robot": "RS-09",
+    "Area": "Soldadura Línea D",
+    "Estado": "Activo",
+    "Temperatura": 348,
+    "Corriente": 115,
+    "Horas_Operacion": 2200,
+    "Alarma": "Ninguna",
+    "Fecha_Actualizacion": "2026-10-03 08:25:50"
+  },
+  {
+    "ID_Robot": "RS-10",
+    "Area": "Soldadura Línea B",
+    "Estado": "Detenido",
+    "Temperatura": 25,
+    "Corriente": 0,
+    "Horas_Operacion": 1400,
+    "Alarma": "En Espera de Material",
+    "Fecha_Actualizacion": "2026-10-03 08:18:10"
+  }
+]

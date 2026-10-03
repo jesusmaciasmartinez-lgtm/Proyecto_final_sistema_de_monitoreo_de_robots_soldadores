@@ -1,0 +1,46 @@
+# ==========================================
+# .dockerignore - Optimización de contexto Docker
+# Excluye archivos innecesarios para reducir tamaño y tiempo de build
+# ==========================================
+
+# Dependencias y logs
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Control de versiones
+.git
+.gitignore
+.gitattributes
+
+# Variables de entorno y secretos locales (NUNCA incluir en imágenes)
+.env
+.env.*
+!.env.example
+
+# Archivos de configuración Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Carpetas de editores e IDEs
+.vscode
+.idea
+.gemini
+*.sublime-project
+*.sublime-workspace
+
+# Archivos temporales y de sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+
+# Documentación no requerida en runtime del contenedor
+README.md
+docs/

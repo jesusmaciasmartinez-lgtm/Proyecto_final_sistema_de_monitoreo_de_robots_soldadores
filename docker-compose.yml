@@ -1,0 +1,47 @@
+services:
+  scada-robots-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: scada-robots-monitor:1.0.0
+    container_name: scada_robots_monitor_service
+    
+    # 9. Reinicio automático ante fallas o reinicios del host
+    restart: unless-stopped
+    
+    # 6. Exposición del puerto 8080 hacia el host
+    ports:
+      - "8080:8080"
+      
+    # 5. Carga de variables de entorno desde archivo .env
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - HOST=0.0.0.0
+      
+    # 8. Health checks a nivel de contenedor para orquestación local
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:' + (process.env.PORT || 8080) + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      
+    # 10. Optimización y límites de consumo de recursos (CPU y RAM)
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.10"
+          memory: 64M
+          
+    # Políticas de rotación de logs para evitar saturación de almacenamiento en planta industrial
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
